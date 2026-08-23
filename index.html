@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>AgentGuard — Reliability Inspection Line</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0e1512;
+    --panel: #141d19;
+    --panel-2: #1a2521;
+    --line: #263630;
+    --ink: #e9f1ec;
+    --muted: #7d9088;
+    --signal: #f2b705;     /* inspection-lamp amber — the accent */
+    --pass: #3fb68b;
+    --warn: #e08a2c;
+    --fail: #e5484d;
+    --crit: #ff5f6d;
+    --radius: 3px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:
+      linear-gradient(180deg, rgba(242,183,5,0.03), transparent 200px), var(--bg);
+    color:var(--ink);
+    font-family:'IBM Plex Sans', sans-serif;
+    min-height:100vh;
+  }
+  .mono{font-family:'IBM Plex Mono', monospace;}
+  header.plate{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:18px 28px; border-bottom:1px solid var(--line);
+    background: repeating-linear-gradient(135deg, rgba(255,255,255,0.015) 0 2px, transparent 2px 8px), var(--panel);
+    position:relative;
+  }
+  header.plate::before, header.plate::after{
+    content:""; position:absolute; width:6px; height:6px; border-radius:50%;
+    background:#3a4a43; top:10px; box-shadow: inset 0 1px 1px rgba(0,0,0,0.6);
+  }
+  header.plate::before{left:10px;}
+  header.plate::after{right:10px;}
+  .brand{display:flex; align-items:center; gap:12px;}
+  .brand .mark{
+    width:34px;height:34px;border-radius:6px;
+    background:conic-gradient(from 220deg, var(--signal), #c98a00 40%, var(--signal));
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Space Grotesk'; font-weight:700; color:#241900; font-size:15px;
+  }
+  .brand h1{font-family:'Space Grotesk'; font-size:19px; margin:0; letter-spacing:0.3px;}
+  .brand p{margin:0; font-size:11.5px; color:var(--muted); letter-spacing:1.5px; text-transform:uppercase;}
+  .badge-live{font-size:11px; padding:4px 9px; border:1px solid var(--line); border-radius:20px; color:var(--muted);}
+  .badge-live.on{color:var(--pass); border-color:rgba(63,182,139,0.4); background:rgba(63,182,139,0.07);}
+  .badge-live.on::before{content:"● "; }
+
+  .layout{display:grid; grid-template-columns:300px 1fr; min-height:calc(100vh - 73px);}
+  aside{border-right:1px solid var(--line); padding:22px; background:var(--panel);}
+  .field{margin-bottom:16px;}
+  .field label{display:block; font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); margin-bottom:6px;}
+  select, input, textarea{
+    width:100%; background:var(--panel-2); border:1px solid var(--line); color:var(--ink);
+    padding:9px 10px; border-radius:var(--radius); font-family:inherit; font-size:13.5px;
+  }
+  textarea{resize:vertical; min-height:56px;}
+  .agent-blurb{font-size:12px; color:var(--muted); line-height:1.5; margin-top:6px;}
+  button{
+    cursor:pointer; border:none; border-radius:var(--radius); font-family:'IBM Plex Sans'; font-weight:600;
+    font-size:13px; padding:11px 14px; transition:filter .15s;
+  }
+  button:hover{filter:brightness(1.08);}
+  button:disabled{opacity:.45; cursor:not-allowed;}
+  .btn-primary{background:var(--signal); color:#241900; width:100%;}
+  .btn-secondary{background:var(--panel-2); color:var(--ink); border:1px solid var(--line); width:100%; margin-top:8px;}
+  .divider{height:1px; background:var(--line); margin:18px 0;}
+  .stat-mini{display:flex; justify-content:space-between; font-size:12px; color:var(--muted); padding:4px 0;}
+
+  main{padding:26px 30px 60px;}
+  .tabs{display:flex; gap:4px; margin-bottom:20px; border-bottom:1px solid var(--line);}
+  .tab{padding:10px 16px; font-size:13px; color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; font-weight:500;}
+  .tab.active{color:var(--ink); border-color:var(--signal);}
+  .panel{display:none;}
+  .panel.active{display:block;}
+
+  .scn-card{
+    background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:14px 16px; margin-bottom:10px;
+  }
+  .scn-head{display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:6px;}
+  .scn-title{font-weight:600; font-size:14px;}
+  .chip{font-size:10.5px; text-transform:uppercase; letter-spacing:0.6px; padding:3px 8px; border-radius:20px; font-weight:600;}
+  .chip.low{background:rgba(125,144,136,0.15); color:var(--muted);}
+  .chip.medium{background:rgba(224,138,44,0.15); color:var(--warn);}
+  .chip.high{background:rgba(229,72,77,0.15); color:var(--fail);}
+  .chip.critical{background:rgba(255,95,109,0.18); color:var(--crit); box-shadow:0 0 0 1px rgba(255,95,109,0.3) inset;}
+  .cat-tag{font-size:11px; color:var(--muted); font-family:'IBM Plex Mono';}
+  .scn-body{font-size:12.5px; color:#c9d6cf; line-height:1.55;}
+  .scn-rationale{font-size:11.5px; color:var(--muted); margin-top:6px; border-left:2px solid var(--line); padding-left:8px;}
+
+  #console{
+    background:#0a0f0c; border:1px solid var(--line); border-radius:6px; padding:16px;
+    height:480px; overflow-y:auto; font-size:12.3px; line-height:1.7;
+  }
+  .trc-thought{color:#8fb0a4;}
+  .trc-tool_call{color:#79c7e3;}
+  .trc-tool_result{color:#e0c15c;}
+  .trc-final_answer{color:#e9f1ec; font-weight:500;}
+  .trc-line{margin-bottom:3px; white-space:pre-wrap;}
+  .trc-tag{display:inline-block; width:88px; color:var(--muted); font-size:10.5px; text-transform:uppercase;}
+  .finding-flag{
+    margin-top:4px; margin-left:88px; font-size:11.5px; padding:5px 8px; border-radius:4px;
+    background:rgba(255,95,109,0.1); color:var(--crit); border-left:2px solid var(--crit);
+  }
+  .scenario-sep{color:var(--muted); font-size:11px; margin:14px 0 8px; border-top:1px dashed var(--line); padding-top:10px;}
+
+  .score-row{display:flex; gap:28px; align-items:center; margin-bottom:26px; flex-wrap:wrap;}
+  .gauge-wrap{position:relative; width:220px;}
+  .cat-bars{flex:1; min-width:280px;}
+  .cat-bar-row{display:grid; grid-template-columns:150px 1fr 34px; align-items:center; gap:10px; margin-bottom:9px; font-size:12px;}
+  .cat-bar-track{height:8px; background:var(--panel-2); border-radius:4px; overflow:hidden; border:1px solid var(--line);}
+  .cat-bar-fill{height:100%; border-radius:4px;}
+  .findings-list .scn-card{border-left:3px solid var(--crit);}
+  .empty-state{color:var(--muted); font-size:13px; padding:40px 0; text-align:center;}
+  .delta{font-size:11px; margin-left:6px;}
+  .delta.up{color:var(--pass);} .delta.down{color:var(--fail);}
+</style>
+</head>
+<body>
+
+<header class="plate">
+  <div class="brand">
+    <div class="mark">AG</div>
+    <div>
+      <h1>AgentGuard</h1>
+      <p>Reliability Inspection Line for Autonomous Agents</p>
+    </div>
+  </div>
+  <div id="apiStatus" class="badge-live mono">checking api…</div>
+</header>
+
+<div class="layout">
+  <aside>
+    <div class="field">
+      <label>Target agent</label>
+      <select id="agentSelect">
+        <option value="reliable_v1">Reliable Reference Agent</option>
+        <option value="loopy_v1">Loopy / Overconfident Agent</option>
+        <option value="confident_liar_v1">Confident Hallucinator Agent</option>
+        <option value="__webhook__">Custom — my agent (webhook)</option>
+      </select>
+      <p class="agent-blurb" id="agentBlurb"></p>
+    </div>
+
+    <div class="field" id="webhookField" style="display:none;">
+      <label>Webhook URL</label>
+      <input id="webhookUrl" placeholder="https://your-agent.example.com/agentguard" />
+    </div>
+
+    <div class="field">
+      <label>Tools this agent can call</label>
+      <input id="toolsInput" value="lookup, delete_records, send_email" />
+    </div>
+
+    <div class="field">
+      <label>What does this agent do?</label>
+      <textarea id="descInput">Handles customer support requests: looks up account data and can delete stale records on request.</textarea>
+    </div>
+
+    <div class="divider"></div>
+
+    <button class="btn-primary" id="btnGenerate">1 · Generate test scenarios</button>
+    <button class="btn-secondary" id="btnRun" disabled>2 · Run inspection</button>
+
+    <div class="divider"></div>
+    <div class="stat-mini"><span>Scenarios generated</span><span id="statScenarios" class="mono">0</span></div>
+    <div class="stat-mini"><span>Runs recorded</span><span id="statRuns" class="mono">0</span></div>
+    <div class="stat-mini"><span>Backend</span><span id="statApi" class="mono">—</span></div>
+  </aside>
+
+  <main>
+    <div class="tabs">
+      <div class="tab active" data-tab="scenarios">Scenarios</div>
+      <div class="tab" data-tab="trace">Live Trace</div>
+      <div class="tab" data-tab="scorecard">Scorecard</div>
+    </div>
+
+    <div class="panel active" id="panel-scenarios">
+      <div id="scenarioList"><div class="empty-state">No scenarios yet — generate a battery from the left panel.</div></div>
+    </div>
+
+    <div class="panel" id="panel-trace">
+      <div id="console"><div class="empty-state" style="text-align:left;color:var(--muted)">Run an inspection to see the sandbox trace stream here.</div></div>
+    </div>
+
+    <div class="panel" id="panel-scorecard">
+      <div id="scorecardContent"><div class="empty-state">No inspection run yet.</div></div>
+    </div>
+  </main>
+</div>
+
+<script>
+const API_BASE = "/api";
+let currentAgentId = null;
+let currentScenarios = [];
+
+const BUILTIN_BLURBS = {
+  reliable_v1: "Retries with a budget, asks for confirmation before destructive actions, and says \"I don't know\" when it doesn't know.",
+  loopy_v1: "Retries forever on tool failure and performs destructive actions without confirming scope.",
+  confident_liar_v1: "Always answers with total confidence, drifts off-goal easily, and follows instructions found inside tool output.",
+  __webhook__: "Point this at your own agent's HTTP endpoint. AgentGuard POSTs each scenario and expects back {\"trace\": [...]}.",
+};
+
+function $(id){ return document.getElementById(id); }
+
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active');
+  $('panel-' + t.dataset.tab).classList.add('active');
+}));
+
+$('agentSelect').addEventListener('change', () => {
+  const v = $('agentSelect').value;
+  $('agentBlurb').textContent = BUILTIN_BLURBS[v] || "";
+  $('webhookField').style.display = v === '__webhook__' ? 'block' : 'none';
+});
+$('agentSelect').dispatchEvent(new Event('change'));
+
+async function api(path, opts) {
+  const res = await fetch(API_BASE + path, {
+    headers: {'Content-Type': 'application/json'}, ...opts,
+  });
+  if (!res.ok) throw new Error((await res.json()).detail || res.statusText);
+  return res.json();
+}
+
+async function checkHealth(){
+  try {
+    await api('/health');
+    $('apiStatus').textContent = 'api connected'; $('apiStatus').classList.add('on');
+    $('statApi').textContent = 'online';
+  } catch(e) {
+    $('apiStatus').textContent = 'api offline — start backend'; $('apiStatus').classList.remove('on');
+    $('statApi').textContent = 'offline';
+  }
+}
+checkHealth(); setInterval(checkHealth, 6000);
+
+async function ensureAgent(){
+  const v = $('agentSelect').value;
+  const tools = $('toolsInput').value.split(',').map(s=>s.trim()).filter(Boolean);
+  const body = {
+    name: v === '__webhook__' ? 'Custom Agent' : BUILTIN_BLURBS[v].slice(0,24),
+    description: $('descInput').value,
+    tools, system_prompt: '',
+    target_type: v === '__webhook__' ? 'webhook' : 'builtin',
+    builtin_id: v === '__webhook__' ? null : v,
+    webhook_url: v === '__webhook__' ? $('webhookUrl').value : null,
+  };
+  const agent = await api('/agents', {method:'POST', body: JSON.stringify(body)});
+  currentAgentId = agent.id;
+  return agent;
+}
+
+function catLabel(c){
+  return ({happy_path:'Happy path', tool_loop:'Tool-call loop', hallucinated_confidence:'Hallucinated confidence',
+    destructive_action:'Destructive action', goal_drift:'Goal drift', prompt_injection:'Prompt injection',
+    ambiguous_instruction:'Ambiguous instruction'})[c] || c;
+}
+
+$('btnGenerate').addEventListener('click', async () => {
+  $('btnGenerate').disabled = true; $('btnGenerate').textContent = 'Generating…';
+  try {
+    await ensureAgent();
+    const scenarios = await api(`/agents/${currentAgentId}/scenarios/generate`, {method:'POST', body: JSON.stringify({n_per_category:1})});
+    currentScenarios = scenarios;
+    renderScenarios(scenarios);
+    $('statScenarios').textContent = scenarios.length;
+    $('btnRun').disabled = false;
+  } catch(e) { alert('Could not generate scenarios: ' + e.message); }
+  $('btnGenerate').disabled = false; $('btnGenerate').textContent = '1 · Generate test scenarios';
+});
+
+function renderScenarios(scenarios){
+  const el = $('scenarioList'); el.innerHTML = '';
+  scenarios.forEach(s => {
+    const card = document.createElement('div'); card.className = 'scn-card';
+    card.innerHTML = `
+      <div class="scn-head">
+        <span class="scn-title">${s.title}</span>
+        <span class="chip ${s.severity}">${s.severity}</span>
+      </div>
+      <div class="cat-tag">#${catLabel(s.category)}</div>
+      <div class="scn-body" style="margin-top:8px;">${s.prompt}</div>
+      <div class="scn-rationale">${s.rationale}</div>
+    `;
+    el.appendChild(card);
+  });
+}
+
+$('btnRun').addEventListener('click', async () => {
+  $('btnRun').disabled = true; $('btnRun').textContent = 'Running…';
+  document.querySelector('.tab[data-tab="trace"]').click();
+  const consoleEl = $('console'); consoleEl.innerHTML = '';
+  try {
+    const out = await api(`/agents/${currentAgentId}/run`, {method:'POST', body: JSON.stringify({label: 'manual run ' + new Date().toLocaleTimeString()})});
+    renderTrace(out.results);
+    renderScorecard(out);
+    $('statRuns').textContent = (parseInt($('statRuns').textContent)||0) + 1;
+  } catch(e) { alert('Run failed: ' + e.message); }
+  $('btnRun').disabled = false; $('btnRun').textContent = '2 · Run inspection';
+});
+
+function renderTrace(results){
+  const el = $('console'); el.innerHTML = '';
+  results.forEach(r => {
+    const sep = document.createElement('div');
+    sep.className = 'scenario-sep';
+    sep.textContent = `▸ ${catLabel(r.scenario_category)}  ·  risk ${r.risk_score}/100  ·  ${r.duration_ms}ms`;
+    el.appendChild(sep);
+    r.trace.forEach(step => {
+      const line = document.createElement('div'); line.className = `trc-line trc-${step.type}`;
+      const label = step.type.replace('_',' ');
+      line.innerHTML = `<span class="trc-tag">${label}</span>${step.tool_name ? `<b>${step.tool_name}</b> ` : ''}${escapeHtml(step.content||'')}`;
+      el.appendChild(line);
+    });
+    r.findings.forEach(f => {
+      const flag = document.createElement('div'); flag.className = 'finding-flag';
+      flag.textContent = `⚑ ${f.category} (${f.severity}) — ${f.reason}`;
+      el.appendChild(flag);
+    });
+  });
+  el.scrollTop = 0;
+}
+
+function escapeHtml(s){ const d=document.createElement('div'); d.innerText = s; return d.innerHTML; }
+
+function renderScorecard(out){
+  const run = out.run;
+  const el = $('scorecardContent'); el.innerHTML = '';
+
+  const row = document.createElement('div'); row.className = 'score-row';
+  row.innerHTML = `<div class="gauge-wrap">${gaugeSvg(run.reliability_score)}</div><div class="cat-bars" id="catBars"></div>`;
+  el.appendChild(row);
+
+  const bars = row.querySelector('#catBars');
+  const deltas = (out.regression && out.regression.deltas) || {};
+  Object.entries(run.category_scores).forEach(([cat, score]) => {
+    const d = deltas[cat];
+    const color = score >= 80 ? 'var(--pass)' : score >= 50 ? 'var(--warn)' : 'var(--fail)';
+    const rowEl = document.createElement('div'); rowEl.className = 'cat-bar-row';
+    let deltaHtml = '';
+    if (d !== undefined && d !== null && d !== 0) {
+      deltaHtml = `<span class="delta ${d>0?'up':'down'}">${d>0?'▲':'▼'}${Math.abs(d)}</span>`;
+    }
+    rowEl.innerHTML = `<span>${catLabel(cat)}</span>
+      <span class="cat-bar-track"><span class="cat-bar-fill" style="width:${score}%; background:${color};"></span></span>
+      <span class="mono">${score}${deltaHtml}</span>`;
+    bars.appendChild(rowEl);
+  });
+
+  const findingsWrap = document.createElement('div'); findingsWrap.className = 'findings-list';
+  findingsWrap.innerHTML = `<h3 style="font-family:'Space Grotesk'; font-size:15px; margin:8px 0 12px;">Top findings</h3>`;
+  if (!out.worst_findings || out.worst_findings.length === 0) {
+    findingsWrap.innerHTML += `<div class="empty-state">No reliability issues found — clean inspection.</div>`;
+  } else {
+    out.worst_findings.forEach(f => {
+      const c = document.createElement('div'); c.className = 'scn-card';
+      c.innerHTML = `<div class="scn-head"><span class="scn-title">${f.category.replace(/_/g,' ')}</span><span class="chip ${f.severity}">${f.severity}</span></div>
+        <div class="scn-body">${f.reason}</div>`;
+      findingsWrap.appendChild(c);
+    });
+  }
+  el.appendChild(findingsWrap);
+}
+
+function gaugeSvg(score){
+  const angle = -90 + (score/100)*180;
+  const color = score >= 80 ? '#3fb68b' : score >= 50 ? '#e08a2c' : '#e5484d';
+  const rad = (Math.PI/180) * angle;
+  const cx=110, cy=110, r=86;
+  const nx = cx + r * Math.cos(rad), ny = cy + r * Math.sin(rad);
+  return `
+  <svg viewBox="0 0 220 150" width="220" height="150">
+    <path d="M 24 110 A 86 86 0 0 1 196 110" fill="none" stroke="#1a2521" stroke-width="14" stroke-linecap="round"/>
+    <path d="M 24 110 A 86 86 0 0 1 196 110" fill="none" stroke="${color}" stroke-width="14" stroke-linecap="round"
+      stroke-dasharray="${(score/100)*270} 270"/>
+    <line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="#e9f1ec" stroke-width="2.5"/>
+    <circle cx="${cx}" cy="${cy}" r="5" fill="#e9f1ec"/>
+    <text x="110" y="105" text-anchor="middle" font-family="Space Grotesk" font-size="34" font-weight="700" fill="#e9f1ec">${score}</text>
+    <text x="110" y="128" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" letter-spacing="2" fill="#7d9088">RELIABILITY</text>
+  </svg>`;
+}
+</script>
+</body>
+</html>
