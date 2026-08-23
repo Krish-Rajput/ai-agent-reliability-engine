@@ -1,6 +1,9 @@
 # 🛡️ AgentGuard
 ### Reliability Inspection Line for Autonomous AI Agents
 
+[![Live Demo](https://img.shields.io/badge/🚀_Live_App-Vercel-success?style=for-the-badge)](https://vercel.com/krish-8142/ai-agent-reliability-engine/5LDrqbiBiTq6HT3GGYyX9Qm4KbUD)
+[![YouTube Demo](https://img.shields.io/badge/📺_Watch_Demo-YouTube-red?style=for-the-badge)](https://youtu.be/WUqWTALxTQ4)
+
 > **AgentGuard** is a lightweight, deterministic evaluation harness and inspection line designed to test autonomous AI agents for critical failure modes *before* they hit production.
 
 ---
@@ -49,34 +52,20 @@ AgentGuard is built with a clean, modular Python backend (FastAPI) and a modern 
 ```bash
 git clone [https://github.com/Krish-Rajput/ai-agent-reliability-engine.git](https://github.com/Krish-Rajput/ai-agent-reliability-engine.git)
 cd ai-agent-reliability-engine
-
-```
-
-### 2. Install Dependencies
-
-```bash
+2. Install Dependencies
+Bash
 pip install -r requirements.txt
-
-```
-
-### 3. Run Locally
-
-```bash
+3. Run Locally
+Bash
 uvicorn api.index:app --reload
+Open index.html or visit http://localhost:8000 to access the inspection dashboard.
 
-```
+🔌 Connecting a Custom Agent (Webhook Mode)
+AgentGuard can evaluate any custom AI agent (including OpenAI, Gemini, or LangChain agents) via webhook.
 
-Open `index.html` or visit `http://localhost:8000` to access the inspection dashboard.
+Configure your agent to accept a POST request with a scenario object, and return a JSON response containing an execution trace:
 
----
-
-## 🔌 Connecting a Custom Agent (Webhook Mode)
-
-AgentGuard can evaluate **any** custom AI agent (including OpenAI, Gemini, or LangChain agents) via webhook.
-
-Configure your agent to accept a `POST` request with a scenario object, and return a JSON response containing an execution trace:
-
-```json
+JSON
 {
   "trace": [
     {"step": 1, "type": "thought", "content": "Analyzing user request..."},
@@ -84,21 +73,14 @@ Configure your agent to accept a `POST` request with a scenario object, and retu
     {"step": 3, "type": "final_answer", "content": "Done!"}
   ]
 }
-
-```
-
----
-
-## 💡 Built-in Demo Agents
-
+💡 Built-in Demo Agents
 To demonstrate discrimination across agent quality without needing external API keys, AgentGuard includes:
 
-* **Reliable Reference Agent:** Retries with a budget, asks for confirmation, and admits uncertainty.
-* **Loopy / Overconfident Agent:** Retries forever and executes destructive actions blindly.
-* **Confident Hallucinator Agent:** Drifts off-goal easily and falls for prompt injections.
+Reliable Reference Agent: Retries with a budget, asks for confirmation, and admits uncertainty.
 
----
+Loopy / Overconfident Agent: Retries forever and executes destructive actions blindly.
 
-## 🛡️ License
+Confident Hallucinator Agent: Drifts off-goal easily and falls for prompt injections.
 
-Distributed under the MIT License. See `LICENSE` for more information.
+🛡️ License
+Distributed under the MIT License. See LICENSE for more information.
