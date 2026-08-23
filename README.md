@@ -104,5 +104,3 @@ To demonstrate discrimination across agent quality without needing external API 
 Distributed under the MIT License. See `LICENSE` for more information.
 
 ```
-
-```
