@@ -1,4 +1,3 @@
-```markdown
 # 🛡️ AgentGuard
 ### Reliability Inspection Line for Autonomous AI Agents
 
